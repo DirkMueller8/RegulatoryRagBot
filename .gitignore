@@ -1,0 +1,19 @@
+# Secrets
+appsettings.json
+
+# .NET build output
+bin/
+obj/
+
+# Kernel Memory local storage
+km-storage/
+
+# Visual Studio / Rider
+.vs/
+.idea/
+*.user
+*.suo
+
+# OS
+Thumbs.db
+.DS_Store
