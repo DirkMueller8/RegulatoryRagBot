@@ -10,15 +10,6 @@ var config = new ConfigurationBuilder()
     .Build()
     .Get<AppConfig>()!;
 
-if (string.IsNullOrWhiteSpace(config.OpenAI.ApiKey) ||
-    config.OpenAI.ApiKey == "YOUR_OPENAI_API_KEY_HERE")
-{
-    Console.ForegroundColor = ConsoleColor.Red;
-    Console.Error.WriteLine("ERROR: Set your OpenAI API key in appsettings.json (OpenAI.ApiKey).");
-    Console.ResetColor();
-    return 1;
-}
-
 // ── Build the shared Kernel Memory instance ───────────────────────────────────
 // Both IngestionService and RagService reuse this single instance so that the
 // Qdrant connection and OpenAI HTTP client are not duplicated.
