@@ -32,7 +32,7 @@ public sealed class QdrantSettings
 
 public sealed class IngestionSettings
 {
-    public string DocumentsPath { get; set; } = @"C:\Users\dirkm\md_documents";
+    public string DocumentsPath { get; set; } = @"C:\Users\dirkm\md_documents\iso13485";
 
     // ── Chunking parameters ────────────────────────────────────────────────────
     // Regulatory text is dense: definitions span sentences, cross-references
