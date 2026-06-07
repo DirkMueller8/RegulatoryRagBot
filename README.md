@@ -191,6 +191,5 @@ RegulatoryRagBot/
 
 ## Related
 
-- [Hybrid LLM Query for Regulatory Documents — LangChain implementation](https://www.linkedin.com/pulse/hybrid-large-language-model-query-regulatory-medical-dirk-fyiwe/)
 - [Microsoft Kernel Memory](https://github.com/microsoft/kernel-memory)
 - [Qdrant](https://qdrant.tech)
