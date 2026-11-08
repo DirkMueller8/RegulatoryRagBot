@@ -217,7 +217,7 @@ RegulatoryRagBot/
 ├── Program.cs              # Entry point, menu loop, Q&A session
 ├── IngestionService.cs     # Folder scanning, chunking, embedding, skip logic
 ├── RagService.cs           # Question answering and citation display
-├── documents/              # One subfolder per corpus (iso-27001, iso-27090, ...)
+├── documents/              # One subfolder per corpus (iso-27001, iso-27090, ...) — not committed, add your own
 ├── MemoryFactory.cs        # Kernel Memory builder configuration
 ├── AppConfig.cs            # Typed configuration model
 ├── appsettings.json        # Runtime config — not committed (contains API key)

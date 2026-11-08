@@ -17,3 +17,5 @@ km-storage/
 # OS
 Thumbs.db
 .DS_Store
+# Local document corpora (licensed standards, not committed)
+documents/
