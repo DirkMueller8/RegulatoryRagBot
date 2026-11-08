@@ -127,10 +127,14 @@ Copy `appsettings.example.json` to `appsettings.json` and fill in your values:
     "IndexName": "regulatory-docs"
   },
   "Ingestion": {
-    "DocumentsPath": "C:\\path\\to\\your\\md_documents",
+    "DocumentsPath": "C:\\path\\to\\RegulatoryRagBot\\documents",
+    "IndexOverrides": { "iso-27001": "regulatory-docs" },
     "MaxTokensPerChunk": 1024,
     "OverlapTokens": 256,
     "MinRelevance": 0.55
+  },
+  "Rag": {
+    "LearningMode": true
   }
 }
 ```
@@ -147,17 +151,50 @@ dotnet run
 
 ## Usage
 
-The app presents a simple menu:
+### Corpora
+
+Each subfolder of `DocumentsPath` is one corpus with its own Qdrant index:
+
+```
+documents/
+├── iso-27001/        # ISO-27001.md, ...
+└── iso-27090/
+    ├── ISO-27090.md
+    └── images/       # images referenced from the Markdown (not embedded)
+```
+
+The index name defaults to the folder name (lower-case). `Ingestion:IndexOverrides` maps a folder to an existing index — e.g. `iso-27001` → `regulatory-docs`, so embeddings created before corpora existed are reused. Questions only search the selected corpus.
+
+Only `*.md` files are ingested; other files (images, `.odt`) are ignored. Images are not embedded — the text is.
+
+### Menu
+
+At startup you pick a corpus, then:
 
 ```
   [I] Ingest documents
+  [R] Re-ingest a document (after editing it)
   [Q] Ask a question
+  [C] Change corpus
+  [L] Toggle learning mode
   [X] Exit
 ```
 
-**First run:** press `I` to ingest your Markdown documents. Each file is chunked, embedded, and stored in Qdrant. Already-indexed files are skipped on subsequent runs — you only pay the embedding cost once per document.
+### Learning mode
 
-**Subsequent runs:** press `Q` directly to ask questions against the existing index.
+Toggle with `[L]`; the start value is `Rag:LearningMode` (default `true`).
+
+| | Learning mode ON | OFF (strict) |
+|---|---|---|
+| Answer source | Documents **plus** the model's general knowledge, each labelled as such | Documents only |
+| Retrieval threshold | None — the model is always called | `MinRelevance` |
+| Sources shown | Passages at or above `MinRelevance`; a note if there are none | Same |
+
+Use it for exploring topics your documents don't cover (e.g. the OWASP Top 10 for AI). General-knowledge parts depend on the model's training cutoff and on it following the labelling instructions, so switch to strict mode for compliance work.
+
+**New corpus:** select it, press `I`. Each file is chunked, embedded, and stored in Qdrant. Already-indexed files are skipped on subsequent runs — you only pay the embedding cost once per document.
+
+**Existing corpus:** press `Q` directly to ask questions against its index.
 
 ---
 
@@ -180,6 +217,7 @@ RegulatoryRagBot/
 ├── Program.cs              # Entry point, menu loop, Q&A session
 ├── IngestionService.cs     # Folder scanning, chunking, embedding, skip logic
 ├── RagService.cs           # Question answering and citation display
+├── documents/              # One subfolder per corpus (iso-27001, iso-27090, ...)
 ├── MemoryFactory.cs        # Kernel Memory builder configuration
 ├── AppConfig.cs            # Typed configuration model
 ├── appsettings.json        # Runtime config — not committed (contains API key)

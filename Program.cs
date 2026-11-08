@@ -28,14 +28,26 @@ catch (Exception ex)
     return 1;
 }
 
-var ingestion = new IngestionService(memory, config);
-var rag       = new RagService(memory, config);
+// ── Select corpus (one subfolder of DocumentsPath = one Qdrant index) ────────
+var corpora = Corpus.Discover(config);
+if (corpora.Count == 0)
+{
+    Console.Error.WriteLine($"No corpus subfolders found in: {Path.GetFullPath(config.Ingestion.DocumentsPath)}");
+    return 1;
+}
+
+var corpus = SelectCorpus(corpora);
+if (corpus is null) return 0;
+
+var ingestion = new IngestionService(memory, corpus);
+var rag       = new RagService(memory, config, corpus);
 
 // ── Main menu loop ────────────────────────────────────────────────────────────
-Console.Clear();
+if (!Console.IsOutputRedirected) Console.Clear();
 Console.ForegroundColor = ConsoleColor.White;
 Console.WriteLine("══════════════════════════════════════════════════");
 Console.WriteLine("   Regulatory Document RAG Chatbot");
+Console.WriteLine($"   Corpus  : {corpus.Name} (index: {corpus.IndexName})");
 Console.WriteLine($"   Model   : {config.OpenAI.ChatModel}");
 Console.WriteLine($"   Embed   : {config.OpenAI.EmbeddingModel}");
 Console.WriteLine($"   Chunks  : {config.Ingestion.MaxTokensPerChunk} tokens / {config.Ingestion.OverlapTokens} overlap");
@@ -47,7 +59,10 @@ Console.WriteLine();
 while (true)
 {
     Console.WriteLine("  [I] Ingest documents");
+    Console.WriteLine("  [R] Re-ingest a document (after editing it)");
     Console.WriteLine("  [Q] Ask a question");
+    Console.WriteLine($"  [C] Change corpus (current: {corpus.Name})");
+    Console.WriteLine($"  [L] Toggle learning mode (now: {(rag.LearningMode ? "ON — general knowledge allowed" : "OFF — documents only")})");
     Console.WriteLine("  [X] Exit");
     Console.Write("> ");
 
@@ -60,8 +75,33 @@ while (true)
             await ingestion.IngestFolderAsync();
             break;
 
+        case "R":
+            Console.Write("Relative path of file to re-ingest (e.g. ISO-27001.md): ");
+            var relativePath = (Console.ReadLine() ?? string.Empty).Trim();
+            await ingestion.ReingestFileAsync(relativePath);
+            break;
+
         case "Q":
             await RunQaSessionAsync(rag);
+            break;
+
+        case "C":
+            var selected = SelectCorpus(corpora);
+            if (selected is not null)
+            {
+                var learning = rag.LearningMode;
+                corpus    = selected;
+                ingestion = new IngestionService(memory, corpus);
+                rag       = new RagService(memory, config, corpus) { LearningMode = learning };
+                Console.WriteLine($"Active corpus: {corpus.Name} (index: {corpus.IndexName})");
+            }
+            break;
+
+        case "L":
+            rag.LearningMode = !rag.LearningMode;
+            Console.WriteLine(rag.LearningMode
+                ? "Learning mode ON: answers may add general model knowledge (labelled as such)."
+                : "Learning mode OFF: answers use the documents only.");
             break;
 
         case "X":
@@ -69,11 +109,34 @@ while (true)
             return 0;
 
         default:
-            Console.WriteLine("Unknown command — type I, Q, or X.");
+            Console.WriteLine("Unknown command — type I, R, Q, C, L, or X.");
             break;
     }
 
     Console.WriteLine();
+}
+
+// ── Corpus picker: accepts a number or a name; empty input / 'x' cancels ──────
+static Corpus? SelectCorpus(List<Corpus> corpora)
+{
+    while (true)
+    {
+        Console.WriteLine("Available corpora:");
+        for (int i = 0; i < corpora.Count; i++)
+            Console.WriteLine($"  [{i + 1}] {corpora[i].Name}");
+        Console.Write("Select corpus (number or name, blank to cancel): ");
+
+        var input = (Console.ReadLine() ?? string.Empty).Trim();
+        if (input.Length == 0 || input.Equals("x", StringComparison.OrdinalIgnoreCase)) return null;
+
+        if (int.TryParse(input, out var n) && n >= 1 && n <= corpora.Count) return corpora[n - 1];
+
+        var byName = corpora.FirstOrDefault(c => c.Name.Equals(input, StringComparison.OrdinalIgnoreCase));
+        if (byName is not null) return byName;
+
+        Console.WriteLine("Unknown corpus.");
+        Console.WriteLine();
+    }
 }
 
 // ── Q&A session loop ──────────────────────────────────────────────────────────
